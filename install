@@ -7,8 +7,6 @@ def run(cmd):
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--docker', action='store_true',
-                        help='Use docker instead of lxd')
     parser.add_argument('--kube', action='store_true',
                         help='Install microk8s and initialize it as a cloud')
     return parser.parse_args()
@@ -18,12 +16,9 @@ def main():
     run('sudo apt-get update')
     run('sudo apt-get dist-upgrade')
     run('sudo snap install juju --classic')
-    if args.docker:
-        run('sudo snap install docker')
-    else:
-        run('sudo snap install lxd')
-        run('lxd init --auto')
-        run('juju bootstrap localhost')
+    run('sudo snap install lxd')
+    run('lxd init --auto')
+    run('juju bootstrap localhost')
     if args.kube:
         run('sudo snap install microk8a --classic')
         run('microk8s status --wait-ready')
