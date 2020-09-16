@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
 
 import argparse
+import subprocess
 
-def run(cmd):
-    return subprocess.run(cmd.split(), check=True)
+def run(cmd, check=True, shell=False):
+    if shell:
+        return subprocess.run(cmd, check=check, shell=True)
+    else:
+        return subprocess.run(cmd.split(), check=check, shell=False)
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -16,12 +20,15 @@ def main():
     run('sudo apt-get update')
     run('sudo apt-get dist-upgrade')
     run('sudo snap install juju --classic')
-    run('sudo snap install lxd')
-    run('lxd init --auto')
-    run('juju bootstrap localhost')
+    p = run('juju list-clouds | grep lxd', shell=True)
+    if p.returncode != 0:
+        run('sudo snap install lxd')
+        run('lxd init --auto')
+        run('juju bootstrap localhost')
     if args.kube:
-        run('sudo snap install microk8a --classic')
+        run('sudo snap install microk8s --classic')
         run('microk8s status --wait-ready')
+        run('microk8s enable storage dns')
 
 
 
