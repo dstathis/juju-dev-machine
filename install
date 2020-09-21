@@ -32,6 +32,7 @@ def main():
         run('sudo microk8s enable storage dns')
         run('sudo microk8s config | juju add-k8s mk8s --client', shell=True)
         run('juju bootstrap mk8s')
+        run('sudo usermod -a -G microk8s $USER', shell=True)
 
 
 
