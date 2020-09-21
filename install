@@ -27,8 +27,11 @@ def main():
         run('juju bootstrap localhost')
     if args.kube:
         run('sudo snap install microk8s --classic')
-        run('microk8s status --wait-ready')
-        run('microk8s enable storage dns')
+        run('sudo snap alias microk8s.kubectl kubectl')
+        run('sudo microk8s status --wait-ready')
+        run('sudo microk8s enable storage dns')
+        run('sudo microk8s config | juju add-k8s mk8s --client')
+        run('juju bootstrap mk8s')
 
 
 
