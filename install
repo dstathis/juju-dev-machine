@@ -19,6 +19,7 @@ def main():
     args = parse_args()
     run('sudo apt-get update')
     run('sudo apt-get dist-upgrade')
+    run('sudo apt-get install make virtualenv')
     run('sudo snap install juju --classic')
     p = run('juju list-clouds | grep lxd', shell=True)
     if p.returncode != 0:
