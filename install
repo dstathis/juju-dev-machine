@@ -25,7 +25,8 @@ def main():
 
     # lxd
     run('sudo snap install lxd')
-    run('lxd init --auto')
+    run('sudo lxd init --auto')
+    run('lxc network set lxdbr0 ipv6.address none')
     run('juju bootstrap localhost')
 
     # k8s
