@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+import os
 import subprocess
 
 def run(cmd, check=True, shell=False):
@@ -12,24 +13,25 @@ def run(cmd, check=True, shell=False):
 
 def parse_args():
     parser = argparse.ArgumentParser()
+    parser.add_argument('--lma', action='store_true')
+    parser.add_argument('--fix', action='store_true')
     return parser.parse_args()
 
 
-def main():
-    args = parse_args()
-    run('sudo apt-get update')
-    run('sudo apt-get -y dist-upgrade')
-    run('sudo apt-get -y install make virtualenv')
-    run('sudo snap install juju --classic')
-    run('sudo snap install juju-wait --classic')
+def fix_k8s():
+    run('juju unregister mk8s')
+    run('sudo snap remove microk8s')
+    setup_k8s()
 
-    # lxd
+
+def setup_lxd():
     run('sudo snap install lxd')
     run('sudo lxd init --auto')
     run('lxc network set lxdbr0 ipv6.address none')
     run('juju bootstrap localhost')
 
-    # k8s
+
+def setup_k8s():
     run('sudo snap install docker')
     run('sudo snap install microk8s --classic')
     run('sudo snap alias microk8s.kubectl kubectl')
@@ -38,6 +40,34 @@ def main():
     run('sudo microk8s config | juju add-k8s mk8s --client', shell=True)
     run('juju bootstrap mk8s')
     run('sudo usermod -a -G microk8s $USER', shell=True)
+
+
+
+def main():
+    args = parse_args()
+
+    if args.fix:
+        fix_k8s()
+        return
+
+    run('sudo apt-get update')
+    run('sudo apt-get -y dist-upgrade')
+    run('sudo apt-get -y install make virtualenv')
+    run('sudo snap install juju --classic')
+    run('sudo snap install juju-wait --classic')
+
+    setup_lxd()
+    setup_k8s()
+
+    if args.lma:
+        curdir = os.getcwd()
+        try:
+            os.chdir(os.environ['HOME'])
+            run('git clone git@github.com:canonical/grafana-operator.git')
+            run('git clone git@github.com:canonical/prometheus-operator.git')
+            run('git clone git@github.com:dstathis/alertmanager-operator.git')
+        finally:
+            os.chdir(curdir)
 
 
 if __name__ == '__main__':
