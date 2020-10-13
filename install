@@ -19,7 +19,7 @@ def parse_args():
 
 
 def fix_k8s():
-    run('juju unregister mk8s')
+    run('juju unregister mk8s-localhost -y')
     run('sudo snap remove microk8s')
     setup_k8s()
 
