@@ -48,6 +48,8 @@ def main():
 
     if args.fix:
         fix_k8s()
+        if args.lma:
+            run('juju add-model lma')
         return
 
     run('sudo apt-get update')
@@ -66,6 +68,7 @@ def main():
             run('git clone git@github.com:canonical/grafana-operator.git')
             run('git clone git@github.com:canonical/prometheus-operator.git')
             run('git clone git@github.com:dstathis/alertmanager-operator.git')
+            run('juju add-model lma')
         finally:
             os.chdir(curdir)
 
