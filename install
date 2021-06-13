@@ -2,6 +2,8 @@
 
 import argparse
 import os
+import pathlib
+import shutil
 import subprocess
 
 def run(cmd, check=True, shell=False, **kwargs):
@@ -59,6 +61,8 @@ def main():
     run('sudo apt-get -y install make virtualenv')
     run('sudo snap install juju --classic')
     run('sudo snap install juju-wait --classic')
+    pathlib.Path('~/.aliases.d').expanduser().mkdir(exist_ok=True)
+    shutil.copy('juju.aliases', pathlib.Path('~/.aliases.d').expanduser())
 
     if args.lxd:
         setup_lxd()
