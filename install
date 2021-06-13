@@ -13,8 +13,9 @@ def run(cmd, check=True, shell=False):
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--lma', action='store_true')
-    parser.add_argument('--fix', action='store_true')
+    parser.add_argument('--lma', action='store_true', help='clone lma repos and create lma model')
+    parser.add_argument('--fix', action='store_true', help='Attempt to fix a broken setup'))
+    parser.add_argument('--lxd', action='store_true', help='Set up a lxd cloud (Not repeatable)')
     return parser.parse_args()
 
 
@@ -58,7 +59,8 @@ def main():
     run('sudo snap install juju --classic')
     run('sudo snap install juju-wait --classic')
 
-    setup_lxd()
+    if args.lxd:
+        setup_lxd()
     setup_k8s()
 
     if args.lma:
