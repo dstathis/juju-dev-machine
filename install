@@ -16,6 +16,7 @@ def parse_args():
     parser.add_argument('--lma', action='store_true', help='clone lma repos and create lma model')
     parser.add_argument('--fix', action='store_true', help='Attempt to fix a broken setup'))
     parser.add_argument('--lxd', action='store_true', help='Set up a lxd cloud (Not repeatable)')
+    parser.add_argument('--k8s', action='store_true', help='Set up a k8s cloud (Not repeatable)')
     return parser.parse_args()
 
 
@@ -61,7 +62,8 @@ def main():
 
     if args.lxd:
         setup_lxd()
-    setup_k8s()
+    if args.k8s:
+        setup_k8s()
 
     if args.lma:
         curdir = os.getcwd()
