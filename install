@@ -75,6 +75,8 @@ def main():
                 run('git clone git@github.com:canonical/prometheus-operator.git')
             if not os.path.exists('alertmanager-operator'):
                 run('git clone git@github.com:dstathis/alertmanager-operator.git')
+            if not os.path.exists('cassandra-operator'):
+                run('git clone git@github.com:dstathis/cassandra-operator.git')
             for line in run('juju list-models', capture_output=True, encoding='utf-8').stdout.splitlines():
                 if line.startswith('lma'):
                     break
