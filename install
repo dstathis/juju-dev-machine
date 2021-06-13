@@ -4,11 +4,11 @@ import argparse
 import os
 import subprocess
 
-def run(cmd, check=True, shell=False):
+def run(cmd, check=True, shell=False, **kwargs):
     if shell:
-        return subprocess.run(cmd, check=check, shell=True)
+        return subprocess.run(cmd, check=check, shell=True, **kwargs)
     else:
-        return subprocess.run(cmd.split(), check=check, shell=False)
+        return subprocess.run(cmd.split(), check=check, shell=False, **kwargs)
 
 
 def parse_args():
@@ -69,10 +69,17 @@ def main():
         curdir = os.getcwd()
         try:
             os.chdir(os.environ['HOME'])
-            run('git clone git@github.com:canonical/grafana-operator.git')
-            run('git clone git@github.com:canonical/prometheus-operator.git')
-            run('git clone git@github.com:dstathis/alertmanager-operator.git')
-            run('juju add-model lma')
+            if not os.path.exists('grafana-operator'):
+                run('git clone git@github.com:canonical/grafana-operator.git')
+            if not os.path.exists('prometheus-operator'):
+                run('git clone git@github.com:canonical/prometheus-operator.git')
+            if not os.path.exists('alertmanager-operator'):
+                run('git clone git@github.com:dstathis/alertmanager-operator.git')
+            for line in run('juju list-models', capture_output=True, encoding='utf-8').stdout.splitlines():
+                if line.startswith('lma'):
+                    break
+            else:
+                run('juju add-model lma')
         finally:
             os.chdir(curdir)
 
