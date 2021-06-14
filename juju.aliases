@@ -7,5 +7,5 @@ jr () {
 	else
 		app_name=${1}
 	fi
-	juju remove --force --destroy-storage ${app_name}
+	juju remove-application --force --destroy-storage ${app_name}
 }
