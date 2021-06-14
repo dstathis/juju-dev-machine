@@ -61,6 +61,7 @@ def main():
     run('sudo apt-get -y install make virtualenv')
     run('sudo snap install juju --classic')
     run('sudo snap install juju-wait --classic')
+    run('sudo snap install charmcraft')
     pathlib.Path('~/.aliases.d').expanduser().mkdir(exist_ok=True)
     shutil.copy('juju.aliases', pathlib.Path('~/.aliases.d').expanduser())
 
