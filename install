@@ -82,6 +82,7 @@ def main():
                     break
             else:
                 run('juju add-model lma')
+                run('kubectl config set-context --current --namespace=lma')
         finally:
             os.chdir(curdir)
 
