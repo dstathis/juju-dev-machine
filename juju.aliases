@@ -3,7 +3,7 @@ alias js='juju status'
 jr () {
 	if [ -z ${1} ]; then
 		app_name=$(basename $(pwd))
-		app_name=${app_name%-operator}
+		app_name=${app_name%-operator}-k8s
 	else
 		app_name=${1}
 	fi

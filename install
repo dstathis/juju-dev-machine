@@ -16,16 +16,10 @@ def run(cmd, check=True, shell=False, **kwargs):
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--lma', action='store_true', help='clone lma repos and create lma model')
-    parser.add_argument('--fix', action='store_true', help='Attempt to fix a broken setup')
     parser.add_argument('--lxd', action='store_true', help='Set up a lxd cloud (Not repeatable)')
     parser.add_argument('--k8s', action='store_true', help='Set up a k8s cloud (Not repeatable)')
+    parser.add_argument('--reinstall', action='store_true', help='Completely uninstall juju and microk8s first')
     return parser.parse_args()
-
-
-def fix_k8s():
-    run('juju unregister mk8s-localhost -y')
-    run('sudo snap remove microk8s')
-    setup_k8s()
 
 
 def setup_lxd():
@@ -40,7 +34,8 @@ def setup_k8s():
     run('sudo snap install microk8s --classic')
     run('sudo snap alias microk8s.kubectl kubectl')
     run('sudo microk8s status --wait-ready')
-    run('sudo microk8s enable storage dns registry')
+    run('sudo microk8s enable storage dns dashboard')
+    run('sleep 180')
     run('sudo microk8s config | juju add-k8s mk8s --client', shell=True)
     run('juju bootstrap mk8s')
     run('sudo usermod -a -G microk8s $USER', shell=True)
@@ -50,18 +45,18 @@ def setup_k8s():
 def main():
     args = parse_args()
 
-    if args.fix:
-        fix_k8s()
-        if args.lma:
-            run('juju add-model lma')
-        return
+    if args.reinstall:
+        run('sudo snap remove juju --purge')
+        run('sudo snap remove microk8s --purge')
+        jujudir = os.path.expanduser('~/.local/share/juju')
+        run(f'rm -rf {jujudir}')
 
     run('sudo apt-get update')
     run('sudo apt-get -y dist-upgrade')
     run('sudo apt-get -y install make virtualenv')
     run('sudo snap install juju --classic')
     run('sudo snap install juju-wait --classic')
-    run('sudo snap install charmcraft')
+    run('sudo snap install charmcraft --classic')
     pathlib.Path('~/.aliases.d').expanduser().mkdir(exist_ok=True)
     shutil.copy('juju.aliases', pathlib.Path('~/.aliases.d').expanduser())
 
