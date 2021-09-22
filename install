@@ -33,7 +33,7 @@ def setup_k8s():
     run('sudo snap install microk8s --classic')
     run('sudo snap alias microk8s.kubectl kubectl')
     run('sudo microk8s status --wait-ready')
-    run('sudo microk8s enable storage dns dashboard')
+    run('sudo microk8s enable storage dns dashboard ingress')
     run('sleep 180')
     run('sudo microk8s config | juju add-k8s mk8s --client', shell=True)
     run('juju bootstrap mk8s')
