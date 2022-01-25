@@ -1,4 +1,5 @@
 alias js='juju status'
+alias charmcraft='time charmcraft'
 
 jr () {
 	if [ -z ${1} ]; then
