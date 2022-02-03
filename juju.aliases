@@ -1,5 +1,5 @@
 alias js='juju status'
-alias charmcraft='time charmcraft'
+alias charmcraft='/usr/bin/time -o ~/charmcraft_time.txt --append charmcraft'
 
 jr () {
 	if [ -z ${1} ]; then
