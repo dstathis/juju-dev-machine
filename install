@@ -19,6 +19,7 @@ def parse_args():
     parser.add_argument('--lxd', action='store_true', help='Set up a lxd cloud (Not repeatable)')
     parser.add_argument('--k8s', action='store_true', help='Set up a k8s cloud (Not repeatable)')
     parser.add_argument('--reinstall', action='store_true', help='Completely uninstall juju and microk8s first')
+    parser.add_argument('--juju-channel', action='store', default='latest/stable', help='The snap channel to install juju from')
     return parser.parse_args()
 
 
@@ -53,7 +54,7 @@ def main():
     run('sudo apt-get update')
     run('sudo apt-get -y dist-upgrade')
     run('sudo apt-get -y install make virtualenv')
-    run('sudo snap install juju --classic')
+    run(f'sudo snap install juju --classic --channel {args.juju_channel}')
     run('sudo snap install juju-wait --classic')
     run('sudo snap install charmcraft --classic')
     pathlib.Path('~/.aliases.d').expanduser().mkdir(exist_ok=True)
