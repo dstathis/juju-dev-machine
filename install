@@ -79,6 +79,8 @@ def main():
                 run('git clone git@github.com:canonical/cassandra-operator.git cassandra')
             if not os.path.exists('agent'):
                 run('git clone git@github.com:canonical/grafana-agent-operator.git agent')
+            if not os.path.exists('loki'):
+                run('git clone git@github.com:canonical/loki-operator.git loki')
             for line in run('juju list-models', capture_output=True, encoding='utf-8').stdout.splitlines():
                 if line.startswith('lma'):
                     break
