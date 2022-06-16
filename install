@@ -20,6 +20,7 @@ def parse_args():
     parser.add_argument('--k8s', action='store_true', help='Set up a k8s cloud (Not repeatable)')
     parser.add_argument('--reinstall', action='store_true', help='Completely uninstall juju and microk8s first')
     parser.add_argument('--juju-channel', action='store', default='latest/stable', help='The snap channel to install juju from')
+    parser.add_argument('--agent-version', action='store', help='Version of the juju agent to ask for during bootstrap')
     return parser.parse_args()
 
 
@@ -30,14 +31,15 @@ def setup_lxd():
     run('juju bootstrap localhost')
 
 
-def setup_k8s():
+def setup_k8s(agent_version):
     run('sudo snap install microk8s --classic')
     run('sudo snap alias microk8s.kubectl kubectl')
     run('sudo microk8s status --wait-ready')
     run('sudo microk8s enable storage dns dashboard ingress')
     run('sleep 180')
     run('sudo microk8s config | juju add-k8s mk8s --client', shell=True)
-    run('juju bootstrap mk8s')
+    agent_arg = f'--agent-version {agent_version}' if agent_version else ''
+    run(f'juju bootstrap {agent_arg} mk8s')
     run('sudo usermod -a -G microk8s $USER', shell=True)
 
 
@@ -63,7 +65,7 @@ def main():
     if args.lxd:
         setup_lxd()
     if args.k8s:
-        setup_k8s()
+        setup_k8s(args.agent_version)
 
     if args.lma:
         curdir = os.getcwd()
