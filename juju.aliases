@@ -1,4 +1,5 @@
 alias js='juju status'
+alias wjs='watch --color -n 0.5 juju status --color'
 alias charmcraft='CHARMCRAFT_AUTH=$(cat ~/.charmhub-login) /usr/bin/time -o ~/charmcraft_time.txt --append charmcraft'
 
 jr () {
