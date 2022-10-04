@@ -6,11 +6,16 @@ import pathlib
 import shutil
 import subprocess
 
-def run(cmd, check=True, shell=False, **kwargs):
+
+current_env = os.environ.copy()
+
+
+def run(cmd, check=True, shell=False, env=None, **kwargs):
+    new_env = current_env.update(env)
     if shell:
-        return subprocess.run(cmd, check=check, shell=True, **kwargs)
+        return subprocess.run(cmd, check=check, shell=True, env=new_env, **kwargs)
     else:
-        return subprocess.run(cmd.split(), check=check, shell=False, **kwargs)
+        return subprocess.run(cmd.split(), check=check, shell=False, env=new_env, **kwargs)
 
 
 def parse_args():
@@ -53,9 +58,10 @@ def main():
         jujudir = os.path.expanduser('~/.local/share/juju')
         run(f'rm -rf {jujudir}')
 
+    apt_env = {'DEBIAN_FRONTEND': 'noninteractive'}
     run('sudo apt-get update')
-    run('sudo apt-get -y dist-upgrade')
-    run('sudo apt-get -y install make virtualenv')
+    run('sudo apt-get -yq dist-upgrade', env=apt_env)
+    run('sudo apt-get -yq install make virtualenv', env=apt_env)
     run(f'sudo snap install juju --classic --channel {args.juju_channel}')
     run('sudo snap install juju-wait --classic')
     run('sudo snap install charmcraft --classic')
