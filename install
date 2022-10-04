@@ -11,7 +11,7 @@ current_env = os.environ.copy()
 
 
 def run(cmd, check=True, shell=False, env=None, **kwargs):
-    new_env = current_env.update(env)
+    new_env = current_env.update(env) if env is not None else current_env
     if shell:
         return subprocess.run(cmd, check=check, shell=True, env=new_env, **kwargs)
     else:
