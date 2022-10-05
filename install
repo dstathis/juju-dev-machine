@@ -86,8 +86,6 @@ def main():
                 run('git clone git@github.com:canonical/prometheus-operator.git prometheus')
             if not os.path.exists('alertmanager'):
                 run('git clone git@github.com:canonical/alertmanager-operator.git alertmanager')
-            if not os.path.exists('cassandra'):
-                run('git clone git@github.com:canonical/cassandra-operator.git cassandra')
             if not os.path.exists('agent'):
                 run('git clone git@github.com:canonical/grafana-agent-operator.git agent')
             if not os.path.exists('loki'):
