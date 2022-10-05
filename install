@@ -47,7 +47,7 @@ def setup_k8s(agent_version):
     run('sleep 180')
     run('sudo microk8s config | juju add-k8s mk8s --client', shell=True)
     agent_arg = f'--agent-version {agent_version}' if agent_version else ''
-    run(f'juju bootstrap {agent_arg} mk8s')
+    run(f'juju bootstrap {agent_arg} mk8s k8s')
     run('sudo usermod -a -G microk8s $USER', shell=True)
 
 
@@ -94,6 +94,7 @@ def main():
                 if line.startswith('lma'):
                     break
             else:
+                run('juju switch k8s')
                 run('juju add-model lma')
                 run('juju model-config update-status-hook-interval=30s')
                 run('kubectl config set-context --current --namespace=lma')
