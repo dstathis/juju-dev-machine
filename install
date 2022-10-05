@@ -22,6 +22,7 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--lma', action='store_true', help='clone lma repos and create lma model')
     parser.add_argument('--lxd', action='store_true', help='Set up a lxd cloud (Not repeatable)')
+    parser.add_argument('--lxd-bug', action='store_true', help='Install lxd 5.5 to avoid "Attempting to connect" bug')
     parser.add_argument('--k8s', action='store_true', help='Set up a k8s cloud (Not repeatable)')
     parser.add_argument('--reinstall', action='store_true', help='Completely uninstall juju and microk8s first')
     parser.add_argument('--juju-channel', action='store', default='latest/stable', help='The snap channel to install juju from')
@@ -29,11 +30,13 @@ def parse_args():
     return parser.parse_args()
 
 
-def setup_lxd():
-    run('sudo snap install lxd')
+def setup_lxd(args):
+    channel = '5.5/stable' if args.lxd_bug else 'latest/stable'
+    run(f'sudo snap install --channel {channel} lxd')
     run('sudo lxd init --auto')
     run('lxc network set lxdbr0 ipv6.address none')
-    run('juju bootstrap localhost')
+    run('juju bootstrap localhost machine')
+    run('sudo usermod -a -G lxd $USER', shell=True)
 
 
 def setup_k8s(agent_version):
@@ -69,7 +72,7 @@ def main():
     shutil.copy('juju.aliases', pathlib.Path('~/.aliases.d').expanduser())
 
     if args.lxd:
-        setup_lxd()
+        setup_lxd(args)
     if args.k8s:
         setup_k8s(args.agent_version)
 
