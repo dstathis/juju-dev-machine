@@ -5,12 +5,15 @@ import os
 import pathlib
 import shutil
 import subprocess
+import tempfile
+import time
 
 
 current_env = os.environ.copy()
 
 
 def run(cmd, check=True, shell=False, env=None, **kwargs):
+    print(f'+ {cmd}')
     new_env = current_env.update(env) if env is not None else current_env
     if shell:
         return subprocess.run(cmd, check=check, shell=True, env=new_env, **kwargs)
@@ -27,6 +30,8 @@ def parse_args():
     parser.add_argument('--reinstall', action='store_true', help='Completely uninstall juju and microk8s first')
     parser.add_argument('--juju-channel', action='store', default='latest/stable', help='The snap channel to install juju from')
     parser.add_argument('--agent-version', action='store', help='Version of the juju agent to ask for during bootstrap')
+    parser.add_argument('--deploy', action='store_true', help='Deploy cos and workloads in cross model setup')
+    parser.add_argument('--deploy-channel', action='store', default='edge', help='channel to be used for "--deploy"')
     return parser.parse_args()
 
 
@@ -44,7 +49,11 @@ def setup_k8s(agent_version):
     run('sudo snap alias microk8s.kubectl kubectl')
     run('sudo microk8s status --wait-ready')
     run('sudo microk8s enable storage dns dashboard ingress')
-    run('sleep 180')
+    run('kubectl wait --timeout 30m --for=condition=Ready pods --all --all-namespaces')
+    time.sleep(60)
+    addr = run("ip -4 -j route get 2.2.2.2 | jq -r '.[] | .prefsrc'", shell=True, text=True, stdout=subprocess.PIPE).stdout.strip()
+    run(f'sudo microk8s enable metallb:{addr}-{addr}')
+    run('kubectl wait --timeout 30m --for=condition=Ready pods --all --all-namespaces')
     run('sudo microk8s config | juju add-k8s mk8s --client', shell=True)
     agent_arg = f'--agent-version {agent_version}' if agent_version else ''
     run(f'juju bootstrap {agent_arg} mk8s k8s')
@@ -98,8 +107,23 @@ def main():
                 run('juju add-model lma')
                 run('juju model-config update-status-hook-interval=30s')
                 run('kubectl config set-context --current --namespace=lma')
+                run('juju model-config logging-config="<root>=INFO;unit=DEBUG"')
         finally:
             os.chdir(curdir)
+
+    if args.deploy:
+        run('juju switch k8s:admin/lma')
+        with tempfile.TemporaryDirectory() as d:
+            run(f'curl -L https://raw.githubusercontent.com/canonical/cos-lite-bundle/main/overlays/offers-overlay.yaml -o {d}/offers-overlay.yaml')
+            run(f'juju deploy cos-lite --channel {args.deploy_channel} --trust --overlay {d}/offers-overlay.yaml')
+        run('juju add-model stuff')
+        run('juju switch k8s:admin/stuff')
+        run('juju consume admin/lma.prometheus-receive-remote-write')
+        run('juju consume admin/lma.loki-logging')
+        run('juju consume admin/lma.grafana-dashboards')
+        run(f'juju deploy grafana-agent-k8s --channel {args.deploy_channel} agent')
+        run('juju relate agent prometheus-receive-remote-write')
+        run('juju relate agent loki-logging')
 
 
 if __name__ == '__main__':
