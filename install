@@ -71,9 +71,9 @@ def main():
         run(f'rm -rf {jujudir}')
 
     apt_env = {'DEBIAN_FRONTEND': 'noninteractive'}
-    run('sudo apt-get update')
-    run('sudo apt-get -yq dist-upgrade', env=apt_env)
-    run('sudo apt-get -yq install make virtualenv', env=apt_env)
+    run('sudo apt-get -o DPkg::Lock::Timeout=60 update')
+    run('sudo apt-get -o DPkg::Lock::Timeout=60 -yq dist-upgrade', env=apt_env)
+    run('sudo apt-get -o DPkg::Lock::Timeout=60 -yq install make virtualenv', env=apt_env)
     run(f'sudo snap install juju --classic --channel {args.juju_channel}')
     run('sudo snap install juju-wait --classic')
     run('sudo snap install charmcraft --classic')
@@ -101,6 +101,8 @@ def main():
                 run('git clone git@github.com:canonical/loki-operator.git loki')
             if not os.path.exists('traefik'):
                 run('git clone git@github.com:canonical/traefik-k8s-operator.git traefik')
+            if not os.path.exists('catalogue'):
+                run('git clone git@github.com:canonical/catalogue-k8s-operator.git catalogue')
             for line in run('juju list-models', capture_output=True, encoding='utf-8').stdout.splitlines():
                 if line.startswith('lma'):
                     break
@@ -109,7 +111,6 @@ def main():
                 run('juju add-model lma')
                 run('juju model-config update-status-hook-interval=30s')
                 run('kubectl config set-context --current --namespace=lma')
-                run('juju model-config logging-config="<root>=INFO;unit=DEBUG"')
         finally:
             os.chdir(curdir)
 
