@@ -48,12 +48,12 @@ def setup_k8s(agent_version):
     run('sudo snap install microk8s --classic')
     run('sudo snap alias microk8s.kubectl kubectl')
     run('sudo microk8s status --wait-ready')
-    run('sudo microk8s enable storage dns dashboard ingress')
+    run('sudo microk8s enable hostpath-storage dns dashboard ingress')
     run('kubectl wait --timeout 30m --for=condition=Ready pods --all --all-namespaces')
     time.sleep(60)
     addr = run("ip -4 -j route get 2.2.2.2 | jq -r '.[] | .prefsrc'", shell=True, text=True, stdout=subprocess.PIPE).stdout.strip()
     run(f'sudo microk8s enable metallb:{addr}-{addr}')
-    run('kubectl wait --timeout 30m --for=condition=Ready pods --all --all-namespaces')
+    run('kubectl rollout status daemonset.apps/speaker -n metallb-system -w')
     run('sudo microk8s config | juju add-k8s mk8s --client', shell=True)
     agent_arg = f'--agent-version {agent_version}' if agent_version else ''
     run(f'juju bootstrap {agent_arg} mk8s k8s')
@@ -73,10 +73,11 @@ def main():
     apt_env = {'DEBIAN_FRONTEND': 'noninteractive'}
     run('sudo apt-get -o DPkg::Lock::Timeout=60 update')
     run('sudo apt-get -o DPkg::Lock::Timeout=60 -yq dist-upgrade', env=apt_env)
-    run('sudo apt-get -o DPkg::Lock::Timeout=60 -yq install make virtualenv', env=apt_env)
-    run(f'sudo snap install juju --classic --channel {args.juju_channel}')
-    run('sudo snap install juju-wait --classic')
+    run('sudo apt-get -o DPkg::Lock::Timeout=60 -yq install make virtualenv jq', env=apt_env)
+    run(f'sudo snap install juju --channel {args.juju_channel}')
+    run('sudo snap install juju-wait')
     run('sudo snap install charmcraft --classic')
+    pathlib.Path('~/.local/share').expanduser().mkdir(parents=True, exist_ok=True) # See https://bugs.launchpad.net/juju/+bug/1988355
     pathlib.Path('~/.aliases.d').expanduser().mkdir(exist_ok=True)
     shutil.copy('juju.aliases', pathlib.Path('~/.aliases.d').expanduser())
 
@@ -116,7 +117,8 @@ def main():
 
     if args.deploy:
         run('juju switch k8s:admin/lma')
-        with tempfile.TemporaryDirectory() as d:
+        # We can't create the temp dir in /tmp because the juju snap can not access it.
+        with tempfile.TemporaryDirectory(dir='.') as d:
             run(f'curl -L https://raw.githubusercontent.com/canonical/cos-lite-bundle/main/overlays/offers-overlay.yaml -o {d}/offers-overlay.yaml')
             run(f'juju deploy cos-lite --channel {args.deploy_channel} --trust --overlay {d}/offers-overlay.yaml')
         run('juju add-model stuff')
