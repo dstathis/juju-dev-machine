@@ -75,7 +75,6 @@ def main():
     run('sudo apt-get -o DPkg::Lock::Timeout=60 -yq dist-upgrade', env=apt_env)
     run('sudo apt-get -o DPkg::Lock::Timeout=60 -yq install make virtualenv jq', env=apt_env)
     run(f'sudo snap install juju --channel {args.juju_channel}')
-    run('sudo snap install juju-wait')
     run('sudo snap install charmcraft --classic')
     pathlib.Path('~/.local/share').expanduser().mkdir(parents=True, exist_ok=True) # See https://bugs.launchpad.net/juju/+bug/1988355
     pathlib.Path('~/.aliases.d').expanduser().mkdir(exist_ok=True)
