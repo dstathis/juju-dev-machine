@@ -28,7 +28,7 @@ def parse_args():
     parser.add_argument('--lxd-bug', action='store_true', help='Install lxd 5.5 to avoid "Attempting to connect" bug')
     parser.add_argument('--k8s', action='store_true', help='Set up a k8s cloud (Not repeatable)')
     parser.add_argument('--reinstall', action='store_true', help='Completely uninstall juju and microk8s first')
-    parser.add_argument('--juju-channel', action='store', default='latest/stable', help='The snap channel to install juju from')
+    parser.add_argument('--juju-channel', action='store', default='3.0/stable', help='The snap channel to install juju from')
     parser.add_argument('--agent-version', action='store', help='Version of the juju agent to ask for during bootstrap')
     parser.add_argument('--deploy', action='store_true', help='Deploy cos and workloads in cross model setup')
     parser.add_argument('--deploy-channel', action='store', default='edge', help='channel to be used for "--deploy"')
