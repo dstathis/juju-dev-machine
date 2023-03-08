@@ -128,6 +128,13 @@ def main():
         run(f'juju deploy grafana-agent-k8s --channel {args.deploy_channel} agent')
         run('juju relate agent prometheus-receive-remote-write')
         run('juju relate agent loki-logging')
+        if args.lxd:
+            run('juju switch machine')
+            run('juju add-model machine')
+            run('juju consume k8s:admin/lma.prometheus-receive-remote-write')
+            run('juju consume k8s:admin/lma.loki-logging')
+            run('juju consume k8s:admin/lma.grafana-dashboards')
+        run('juju switch k8s:lma')
 
 
 if __name__ == '__main__':
