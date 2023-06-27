@@ -39,7 +39,6 @@ def setup_lxd(args):
     channel = '5.5/stable' if args.lxd_bug else 'latest/stable'
     run(f'sudo snap install --channel {channel} lxd')
     run('sudo lxd init --auto')
-    run('lxc network set lxdbr0 ipv6.address none')
     run('juju bootstrap localhost machine')
     run('sudo usermod -a -G lxd $USER', shell=True)
 
