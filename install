@@ -3,6 +3,7 @@
 import argparse
 import os
 import pathlib
+import platform
 import shutil
 import subprocess
 import tempfile
@@ -60,7 +61,6 @@ def setup_k8s(agent_version):
     run('sudo usermod -a -G microk8s $USER', shell=True)
 
 
-
 def main():
     args = parse_args()
 
@@ -69,16 +69,35 @@ def main():
         run('sudo snap remove microk8s --purge')
         jujudir = os.path.expanduser('~/.local/share/juju')
         run(f'rm -rf {jujudir}')
+        lxd_instances = run('lxc list --format csv', text=True, stdout=subprocess.PIPE).stdout.strip().splitlines()
+        for instance in lxd_instances:
+            if instance.split(",")[0].startswith('juju-'):
+                run(f'lxc delete {instance.split(",")[0]} --force')
 
     apt_env = {'DEBIAN_FRONTEND': 'noninteractive'}
     run('sudo apt-get -o DPkg::Lock::Timeout=60 update')
     run('sudo apt-get -o DPkg::Lock::Timeout=60 -yq dist-upgrade', env=apt_env)
-    run('sudo apt-get -o DPkg::Lock::Timeout=60 -yq install make virtualenv jq tox time', env=apt_env)
+    pversion = platform.python_version_tuple()
+    run(f'sudo apt-get -o DPkg::Lock::Timeout=60 -yq install make virtualenv jq tox time python{pversion[0]}.{pversion[1]}-venv', env=apt_env)
     run(f'sudo snap install juju --channel {args.juju_channel}')
     run('sudo snap install charmcraft --classic')
     pathlib.Path('~/.local/share').expanduser().mkdir(parents=True, exist_ok=True) # See https://bugs.launchpad.net/juju/+bug/1988355
     pathlib.Path('~/.aliases.d').expanduser().mkdir(exist_ok=True)
     shutil.copy('juju.aliases', pathlib.Path('~/.aliases.d').expanduser())
+
+    # Install additional tools
+    homedir = pathlib.Path('~').expanduser()
+    (homedir / 'repos').mkdir(exist_ok=True)
+    (homedir / 'bin').mkdir(exist_ok=True)
+    if not (homedir / 'repos/jhack').exists():
+        run(f'git clone git@github.com:PietroPasotti/jhack.git {homedir}/repos/jhack', shell=True)
+    run(f'python3 -m venv {homedir}/repos/jhack/venv', shell=True)
+    run(f'. {homedir}/repos/jhack/venv/bin/activate; pip install -e {homedir}/repos/jhack', shell=True)
+    if not (homedir / 'repos/packcharm').exists():
+        run(f'git clone git@github.com:dstathis/packcharm.git {homedir}/repos/packcharm', shell=True)
+    run(f'python3 -m venv {homedir}/repos/packcharm/venv', shell=True)
+    run(f'. {homedir}/repos/packcharm/venv/bin/activate; pip install -r {homedir}/repos/packcharm/requirements.txt', shell=True)
+    run(f'cp scripts/* {homedir}/bin/', shell=True)
 
     if args.lxd:
         setup_lxd(args)

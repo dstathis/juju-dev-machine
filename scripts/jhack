@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+source ~/repos/jhack/venv/bin/activate
+
+if [ "$1" == "update" ]; then
+	git -C ~/repos/jhack pull
+	pip install -e ~/repos/jhack
+	exit 0
+fi
+
+jhack "$@"

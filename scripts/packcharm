@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+source ~/repos/packcharm/venv/bin/activate
+
+if [ "$1" == "update" ]; then
+	git -C ~/repos/packcharm pull
+	pip install -r ~/repos/packcharm/requirements.txt
+	exit 0
+fi
+
+~/repos/packcharm/packcharm "$@"
