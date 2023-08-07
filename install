@@ -24,14 +24,11 @@ def run(cmd, check=True, shell=False, env=None, **kwargs):
 
 def parse_args():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--lma', action='store_true', help='clone lma repos and create lma model')
-    parser.add_argument('--lxd', action='store_true', help='Set up a lxd cloud (Not repeatable)')
     parser.add_argument('--lxd-bug', action='store_true', help='Install lxd 5.5 to avoid "Attempting to connect" bug')
-    parser.add_argument('--k8s', action='store_true', help='Set up a k8s cloud (Not repeatable)')
     parser.add_argument('--reinstall', action='store_true', help='Completely uninstall juju and microk8s first')
     parser.add_argument('--juju-channel', action='store', default='latest/stable', help='The snap channel to install juju from')
     parser.add_argument('--agent-version', action='store', help='Version of the juju agent to ask for during bootstrap')
-    parser.add_argument('--deploy', action='store_true', help='Deploy cos and workloads in cross model setup')
+    parser.add_argument('--no-deploy', action='store_true', help='Deploy cos and workloads in cross model setup')
     parser.add_argument('--deploy-channel', action='store', default='edge', help='channel to be used for "--deploy"')
     return parser.parse_args()
 
@@ -98,41 +95,38 @@ def main():
     run(f'. {homedir}/repos/packcharm/venv/bin/activate; pip install -r {homedir}/repos/packcharm/requirements.txt', shell=True)
     run(f'cp scripts/* {homedir}/bin/', shell=True)
 
-    if args.lxd:
-        setup_lxd(args)
-    if args.k8s:
-        setup_k8s(args.agent_version)
+    setup_lxd(args)
+    setup_k8s(args.agent_version)
 
-    if args.lma:
-        curdir = os.getcwd()
-        try:
-            os.chdir(os.environ['HOME'])
-            if not os.path.exists('grafana'):
-                run('git clone git@github.com:canonical/grafana-operator.git grafana')
-            if not os.path.exists('prometheus'):
-                run('git clone git@github.com:canonical/prometheus-operator.git prometheus')
-            if not os.path.exists('alertmanager'):
-                run('git clone git@github.com:canonical/alertmanager-operator.git alertmanager')
-            if not os.path.exists('agent'):
-                run('git clone git@github.com:canonical/grafana-agent-operator.git agent')
-            if not os.path.exists('loki'):
-                run('git clone git@github.com:canonical/loki-operator.git loki')
-            if not os.path.exists('traefik'):
-                run('git clone git@github.com:canonical/traefik-k8s-operator.git traefik')
-            if not os.path.exists('catalogue'):
-                run('git clone git@github.com:canonical/catalogue-k8s-operator.git catalogue')
-            for line in run('juju list-models', capture_output=True, encoding='utf-8').stdout.splitlines():
-                if line.startswith('lma'):
-                    break
-            else:
-                run('juju switch k8s')
-                run('juju add-model lma')
-                run('juju model-config update-status-hook-interval=30s')
-                run('kubectl config set-context --current --namespace=lma')
-        finally:
-            os.chdir(curdir)
+    curdir = os.getcwd()
+    try:
+        os.chdir(os.environ['HOME'])
+        if not os.path.exists('grafana'):
+            run('git clone git@github.com:canonical/grafana-operator.git grafana')
+        if not os.path.exists('prometheus'):
+            run('git clone git@github.com:canonical/prometheus-operator.git prometheus')
+        if not os.path.exists('alertmanager'):
+            run('git clone git@github.com:canonical/alertmanager-operator.git alertmanager')
+        if not os.path.exists('agent'):
+            run('git clone git@github.com:canonical/grafana-agent-operator.git agent')
+        if not os.path.exists('loki'):
+            run('git clone git@github.com:canonical/loki-operator.git loki')
+        if not os.path.exists('traefik'):
+            run('git clone git@github.com:canonical/traefik-k8s-operator.git traefik')
+        if not os.path.exists('catalogue'):
+            run('git clone git@github.com:canonical/catalogue-k8s-operator.git catalogue')
+        for line in run('juju list-models', capture_output=True, encoding='utf-8').stdout.splitlines():
+            if line.startswith('lma'):
+                break
+        else:
+            run('juju switch k8s')
+            run('juju add-model lma')
+            run('juju model-config update-status-hook-interval=30s')
+            run('kubectl config set-context --current --namespace=lma')
+    finally:
+        os.chdir(curdir)
 
-    if args.deploy:
+    if not args.no_deploy:
         run('juju switch k8s:admin/lma')
         # We can't create the temp dir in /tmp because the juju snap can not access it.
         with tempfile.TemporaryDirectory(dir='.') as d:
