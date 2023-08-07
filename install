@@ -92,7 +92,7 @@ def main():
     if not (homedir / 'repos/packcharm').exists():
         run(f'git clone git@github.com:dstathis/packcharm.git {homedir}/repos/packcharm', shell=True)
     run(f'python3 -m venv {homedir}/repos/packcharm/venv', shell=True)
-    run(f'. {homedir}/repos/packcharm/venv/bin/activate; pip install -r {homedir}/repos/packcharm/requirements.txt', shell=True)
+    run(f'. {homedir}/repos/packcharm/venv/bin/activate; pip install {homedir}/repos/packcharm', shell=True)
     run(f'cp scripts/* {homedir}/bin/', shell=True)
 
     setup_lxd(args)
@@ -138,14 +138,13 @@ def main():
         run('juju consume admin/lma.loki-logging loki')
         run('juju consume admin/lma.grafana-dashboards grafana')
         run(f'juju deploy grafana-agent-k8s --channel {args.deploy_channel} agent')
-        run('juju relate agent prometheus-receive-remote-write')
-        run('juju relate agent loki-logging')
-        if args.lxd:
-            run('juju switch machine')
-            run('juju add-model machine')
-            run('juju consume k8s:admin/lma.prometheus-receive-remote-write prometheus')
-            run('juju consume k8s:admin/lma.loki-logging loki')
-            run('juju consume k8s:admin/lma.grafana-dashboards grafana')
+        run('juju relate agent prometheus')
+        run('juju relate agent loki')
+        run('juju switch machine')
+        run('juju add-model machine')
+        run('juju consume k8s:admin/lma.prometheus-receive-remote-write prometheus')
+        run('juju consume k8s:admin/lma.loki-logging loki')
+        run('juju consume k8s:admin/lma.grafana-dashboards grafana')
         run('juju switch k8s:lma')
 
 
