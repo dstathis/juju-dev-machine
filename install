@@ -140,6 +140,8 @@ def main():
         run(f'juju deploy grafana-agent-k8s --channel {args.deploy_channel} agent')
         run('juju relate agent prometheus')
         run('juju relate agent loki')
+        run(f'juju deploy flog-k8s --channel {args.deploy_channel} flog')
+        run('juju relate flog agent')
         run('juju switch machine')
         run('juju add-model machine')
         run('juju consume k8s:admin/lma.prometheus-receive-remote-write prometheus')
