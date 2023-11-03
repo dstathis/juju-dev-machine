@@ -1,6 +1,8 @@
 alias js='juju status'
 alias wjs='watch --color -n 0.5 juju status --color'
 alias charmcraft='CHARMCRAFT_AUTH=$(cat ~/.charmhub-login) /usr/bin/time -o ~/charmcraft_time.txt --append charmcraft'
+alias snapcraft='SNAPCRAFT_STORE_CREDENTIALS=$(cat ~/.snapcraft-login) snapcraft'
+alias pw='juju run -m k8s:lma grafana/0 get-admin-password'
 
 jr () {
 	if [ -z ${1} ]; then
