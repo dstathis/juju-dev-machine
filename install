@@ -149,6 +149,7 @@ def main():
         run('juju consume k8s:admin/lma.loki-logging loki')
         run('juju consume k8s:admin/lma.grafana-dashboards grafana')
         run('juju switch k8s:lma')
+        run('juju run grafana/0 get-admin-password')
 
 
 if __name__ == '__main__':
