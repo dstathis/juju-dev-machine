@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+import json
 import os
 import pathlib
 import platform
@@ -22,6 +23,19 @@ def run(cmd, check=True, shell=False, env=None, **kwargs):
         return subprocess.run(cmd.split(), check=check, shell=False, env=new_env, **kwargs)
 
 
+def controller_exists(name):
+    output = json.loads(run('juju controllers --format json', text=True, stdout=subprocess.PIPE).stdout)
+    return False if output['controllers'] is None else name in output['controllers']
+
+
+def model_exists(name):
+    output = json.loads(run('juju models --format json', text=True, stdout=subprocess.PIPE).stdout)
+    for model in output['models']:
+        if model['short-name'] == name:
+            return True
+    return False
+
+
 def parse_args():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--lxd-bug', action='store_true', help='Install lxd 5.5 to avoid "Attempting to connect" bug')
@@ -37,7 +51,9 @@ def setup_lxd(args):
     channel = '5.5/stable' if args.lxd_bug else 'latest/stable'
     run(f'sudo snap install --channel {channel} lxd')
     run('sudo lxd init --auto')
-    run('juju bootstrap localhost machine')
+    if not controller_exists('machine'):
+        agent_arg = f'--agent-version {agent_version}' if args.agent_version else ''
+        run(f'juju bootstrap {agent_arg} localhost machine')
     run('sudo usermod -a -G lxd $USER', shell=True)
 
 
@@ -53,8 +69,9 @@ def setup_k8s(agent_version):
     run(f'sudo microk8s enable metallb:{addr}-{addr}')
     run('kubectl rollout status daemonset.apps/speaker -n metallb-system -w')
     run('sudo microk8s config | juju add-k8s mk8s --client', shell=True)
-    agent_arg = f'--agent-version {agent_version}' if agent_version else ''
-    run(f'juju bootstrap {agent_arg} mk8s k8s')
+    if not controller_exists('k8s'):
+        agent_arg = f'--agent-version {agent_version}' if agent_version else ''
+        run(f'juju bootstrap {agent_arg} mk8s k8s')
     run('sudo usermod -a -G microk8s $USER', shell=True)
 
 
