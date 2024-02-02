@@ -189,7 +189,6 @@ def main():
         run('juju relate agent kafka')
         run('juju relate hob agent')
         run('juju switch k8s:lma')
-        run('juju run --wait 20m grafana/0 get-admin-password')
 
 
 if __name__ == '__main__':
