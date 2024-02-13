@@ -93,6 +93,7 @@ def main():
     run('sudo -E apt-get -o DPkg::Lock::Timeout=60 -yq dist-upgrade', env=apt_env)
     pversion = platform.python_version_tuple()
     run(f'sudo -E apt-get -o DPkg::Lock::Timeout=60 -yq install make virtualenv jq tox time python{pversion[0]}.{pversion[1]}-venv', env=apt_env)
+    run('sudo snap install yq')
     run(f'sudo snap install juju --channel {args.juju_channel}')
     run('sudo snap install charmcraft --classic')
     pathlib.Path('~/.local/share').expanduser().mkdir(parents=True, exist_ok=True) # See https://bugs.launchpad.net/juju/+bug/1988355
