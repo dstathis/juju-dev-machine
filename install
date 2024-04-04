@@ -166,6 +166,7 @@ def main():
         run(f'juju deploy grafana-agent-k8s --channel {args.deploy_channel} agent')
         run('juju relate agent prometheus')
         run('juju relate agent loki')
+        run('juju relate agent grafana')
         run(f'juju deploy flog-k8s --channel {args.deploy_channel} flog')
         run('juju relate flog agent')
         run(f'juju deploy --channel {args.deploy_channel} zinc-k8s zinc')
