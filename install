@@ -68,6 +68,7 @@ def setup_k8s(agent_version):
     addr = run("ip -4 -j route get 2.2.2.2 | jq -r '.[] | .prefsrc'", shell=True, text=True, stdout=subprocess.PIPE).stdout.strip()
     run(f'sudo microk8s enable metallb:{addr}-{addr}')
     run('kubectl rollout status daemonset.apps/speaker -n metallb-system -w')
+    run('sudo microk8s config > ${HOME}/.kube/config', shell=True)
     run('sudo microk8s config | juju add-k8s mk8s --client', shell=True)
     if not controller_exists('k8s'):
         agent_arg = f'--agent-version {agent_version}' if agent_version else ''
