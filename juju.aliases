@@ -4,6 +4,7 @@ alias charmcraft='CHARMCRAFT_AUTH=$(cat ~/.charmhub-login) /usr/bin/time -o ~/ch
 alias snapcraft='SNAPCRAFT_STORE_CREDENTIALS=$(cat ~/.snapcraft-login) snapcraft'
 alias pw='juju run -m k8s:lma grafana/0 get-admin-password'
 alias allrepos="curl https://raw.githubusercontent.com/canonical/observability/main/manifest.yml | yq '.repos | .[] | .url'"
+alias kubeswitch='kubectl config set-context --current --namespace'
 
 jr () {
 	if [ -z ${1} ]; then
