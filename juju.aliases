@@ -15,5 +15,6 @@ jr () {
 	fi
 	juju remove-application --destroy-storage --no-prompt ${app_name}
 }
+alias jrm='juju destroy-model --destroy-storage --no-prompt'
 
 alias nuke='juju destroy-model --destroy-storage --no-wait --force --no-prompt'
