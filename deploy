@@ -1,0 +1,95 @@
+#!/usr/bin/env python3
+
+import argparse
+import os
+import subprocess
+import sys
+import tempfile
+
+
+current_env = os.environ.copy()
+RED = '\033[91m'
+ENDCOLOR = '\033[0m'
+
+
+def main():
+    args = parse_args()
+    if 'cos' in args.targets:
+        deploy_cos(channel=args.channel)
+    if 'istio' in args.targets:
+        deploy_istio()
+
+
+def run(cmd, check=True, shell=False, env=None, **kwargs):
+    print(f'+ {cmd}')
+    new_env = current_env.update(env) if env is not None else current_env
+    if shell:
+        return subprocess.run(cmd, check=check, shell=True, env=new_env, **kwargs)
+    else:
+        return subprocess.run(cmd.split(), check=check, shell=False, env=new_env, **kwargs)
+
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('targets', nargs='*', default=['istio'], help='Targets to deploy [istio, cos]')
+    parser.add_argument('--channel', default='stable', help='Channel')
+    return parser.parse_args()
+
+
+def deploy_cos(channel):
+
+    # Check if models exist
+    run('juju switch machine')
+    for line in run('juju list-models', capture_output=True, encoding='utf-8').stdout.splitlines():
+        if line.startswith('cos-stuff'):
+            sys.stderr.write('Model already exists. Exiting.\n')
+            return
+    run('juju switch k8s')
+    for line in run('juju list-models', capture_output=True, encoding='utf-8').stdout.splitlines():
+        if line.startswith('cos') or line.startswith('cos-stuff'):
+            sys.stderr.write('Model already exists. Exiting.\n')
+            return
+
+    run('juju add-model cos')
+
+    # We can't create the temp dir in /tmp because the juju snap can not access it.
+    with tempfile.TemporaryDirectory(dir='.') as d:
+        run(f'curl -L https://raw.githubusercontent.com/canonical/cos-lite-bundle/main/overlays/offers-overlay.yaml -o {d}/offers-overlay.yaml')
+        run(f'juju deploy cos-lite --channel {channel} --trust --overlay {d}/offers-overlay.yaml')
+    run('juju add-model cos-stuff')
+    run('juju consume admin/cos.prometheus-receive-remote-write prometheus')
+    run('juju consume admin/cos.loki-logging loki')
+    run('juju consume admin/cos.grafana-dashboards grafana')
+    run(f'juju deploy grafana-agent-k8s --channel {channel} agent')
+    run('juju relate agent prometheus')
+    run('juju relate agent loki')
+    run('juju relate agent grafana')
+    run(f'juju deploy flog-k8s --channel {channel} flog')
+    run('juju relate flog agent')
+    run(f'juju deploy --channel {channel} zinc-k8s zinc')
+    run('juju relate zinc:grafana-dashboard agent')
+    run('juju relate zinc:metrics-endpoint agent')
+    run('juju relate zinc:log-proxy agent')
+    run('juju switch machine')
+    run('juju add-model cos-stuff')
+    run('juju consume k8s:admin/cos.prometheus-receive-remote-write prometheus')
+    run('juju consume k8s:admin/cos.loki-logging loki')
+    run('juju consume k8s:admin/cos.grafana-dashboards grafana')
+    run(f'juju deploy --channel {channel} zookeeper')
+    run(f'juju deploy --channel {channel} hardware-observer hob')
+    run('juju relate hob zookeeper')
+    run(f'juju deploy --channel {channel} grafana-agent agent')
+    run('juju relate agent grafana')
+    run('juju relate agent loki')
+    run('juju relate agent prometheus')
+    run('juju relate agent zookeeper')
+    run('juju relate hob agent')
+    run('juju switch k8s:cos')
+
+
+def deploy_istio():
+    print(f'\n{RED}ISTIO NOT IMPLEMENTED!{ENDCOLOR}\n')
+
+
+if __name__ == '__main__':
+    main()

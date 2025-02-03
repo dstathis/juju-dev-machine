@@ -7,7 +7,6 @@ import pathlib
 import platform
 import shutil
 import subprocess
-import tempfile
 import time
 
 
@@ -38,21 +37,17 @@ def model_exists(name):
 
 def parse_args():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--lxd-bug', action='store_true', help='Install lxd 5.5 to avoid "Attempting to connect" bug')
     parser.add_argument('--reinstall', action='store_true', help='Completely uninstall juju and microk8s first')
     parser.add_argument('--juju-channel', action='store', default='3/stable', help='The snap channel to install juju from')
     parser.add_argument('--agent-version', action='store', help='Version of the juju agent to ask for during bootstrap')
-    parser.add_argument('--no-deploy', action='store_true', help='Deploy cos and workloads in cross model setup')
-    parser.add_argument('--deploy-channel', action='store', default='edge', help='channel to be used for "--deploy"')
     return parser.parse_args()
 
 
 def setup_lxd(args):
-    channel = '5.5/stable' if args.lxd_bug else 'latest/stable'
-    run(f'sudo snap install --channel {channel} lxd')
+    run('sudo snap install lxd')
     run('sudo lxd init --auto')
     if not controller_exists('machine'):
-        agent_arg = f'--agent-version {agent_version}' if args.agent_version else ''
+        agent_arg = f'--agent-version {args.agent_version}' if args.agent_version else ''
         run(f'juju bootstrap {agent_arg} localhost machine')
     run('sudo usermod -a -G lxd $USER', shell=True)
 
@@ -97,7 +92,6 @@ def main():
     run('sudo snap install yq')
     run(f'sudo snap install juju --channel {args.juju_channel}')
     run('sudo snap install charmcraft --classic')
-    pathlib.Path('~/.local/share').expanduser().mkdir(parents=True, exist_ok=True) # See https://bugs.launchpad.net/juju/+bug/1988355
     pathlib.Path('~/.aliases.d').expanduser().mkdir(exist_ok=True)
     shutil.copy('juju.aliases', pathlib.Path('~/.aliases.d').expanduser())
 
@@ -106,7 +100,7 @@ def main():
     (homedir / 'repos').mkdir(exist_ok=True)
     (homedir / 'bin').mkdir(exist_ok=True)
     if not (homedir / 'repos/jhack').exists():
-        run(f'git clone git@github.com:PietroPasotti/jhack.git {homedir}/repos/jhack', shell=True)
+        run(f'git clone git@github.com:canonical/jhack.git {homedir}/repos/jhack', shell=True)
     run(f'python3 -m venv {homedir}/repos/jhack/venv', shell=True)
     run(f'. {homedir}/repos/jhack/venv/bin/activate; pip install -e {homedir}/repos/jhack', shell=True)
     if not (homedir / 'repos/packcharm').exists():
@@ -121,78 +115,41 @@ def main():
     curdir = os.getcwd()
     try:
         os.chdir(os.environ['HOME'])
-        if not os.path.exists('grafana'):
-            run('git clone git@github.com:canonical/grafana-k8s-operator.git grafana')
-        if not os.path.exists('prometheus'):
-            run('git clone git@github.com:canonical/prometheus-k8s-operator.git prometheus')
-        if not os.path.exists('alertmanager'):
-            run('git clone git@github.com:canonical/alertmanager-k8s-operator.git alertmanager')
-        if not os.path.exists('agent'):
-            run('git clone git@github.com:canonical/grafana-agent-operator.git agent')
-        if not os.path.exists('k8s-agent'):
-            run('git clone git@github.com:canonical/grafana-agent-k8s-operator.git k8s-agent')
-        if not os.path.exists('loki'):
-            run('git clone git@github.com:canonical/loki-operator.git loki')
+
+        # COS
+        if not os.path.exists('repos/grafana'):
+            run('git clone git@github.com:canonical/grafana-k8s-operator.git repos/grafana')
+        if not os.path.exists('repos/prometheus'):
+            run('git clone git@github.com:canonical/prometheus-k8s-operator.git repos/prometheus')
+        if not os.path.exists('repos/alertmanager'):
+            run('git clone git@github.com:canonical/alertmanager-k8s-operator.git repos/alertmanager')
+        if not os.path.exists('repos/agent'):
+            run('git clone git@github.com:canonical/grafana-agent-operator.git repos/agent')
+        if not os.path.exists('repos/k8s-agent'):
+            run('git clone git@github.com:canonical/grafana-agent-k8s-operator.git repos/k8s-agent')
+        if not os.path.exists('repos/loki'):
+            run('git clone git@github.com:canonical/loki-operator.git repos/loki')
+        if not os.path.exists('repos/catalogue'):
+            run('git clone git@github.com:canonical/catalogue-k8s-operator.git repos/catalogue')
+        if not os.path.exists('repos/mimir-worker'):
+            run('git clone git@github.com:canonical/mimir-worker-k8s-operator.git repos/mimir-worker')
+        if not os.path.exists('repos/mimir-coordinator'):
+            run('git clone git@github.com:canonical/mimir-coordinator-k8s-operator.git repos/mimir-coordinator')
+
+        # Traefik
         if not os.path.exists('traefik'):
-            run('git clone git@github.com:canonical/traefik-k8s-operator.git traefik')
-        if not os.path.exists('catalogue'):
-            run('git clone git@github.com:canonical/catalogue-k8s-operator.git catalogue')
-        if not os.path.exists('worker'):
-            run('git clone git@github.com:canonical/mimir-worker-k8s-operator.git worker')
-        if not os.path.exists('coordinator'):
-            run('git clone git@github.com:canonical/mimir-coordinator-k8s-operator.git coordinator')
-        for line in run('juju list-models', capture_output=True, encoding='utf-8').stdout.splitlines():
-            if line.startswith('lma'):
-                break
-        else:
-            run('juju switch k8s')
-            run('juju add-model lma')
-            run('juju model-config update-status-hook-interval=30s')
-            run('kubectl config set-context --current --namespace=lma')
+            run('git clone git@github.com:canonical/traefik-k8s-operator.git repos/traefik')
+
+        # Istio
+        if not os.path.exists('istio'):
+            run('git clone git@github.com:canonical/istio-k8s-operator.git istio')
+        if not os.path.exists('beacon'):
+            run('git clone git@github.com:canonical/istio-beacon-k8s-operator.git beacon')
+        if not os.path.exists('ingress'):
+            run('git clone git@github.com:canonical/istio-ingress-k8s-operator.git ingress')
+
     finally:
         os.chdir(curdir)
-
-    if not args.no_deploy:
-        run('juju switch k8s:admin/lma')
-        # We can't create the temp dir in /tmp because the juju snap can not access it.
-        with tempfile.TemporaryDirectory(dir='.') as d:
-            run(f'curl -L https://raw.githubusercontent.com/canonical/cos-lite-bundle/main/overlays/offers-overlay.yaml -o {d}/offers-overlay.yaml')
-            run(f'juju deploy cos-lite --channel {args.deploy_channel} --trust --overlay {d}/offers-overlay.yaml')
-        run('juju add-model stuff')
-        run('juju switch k8s:admin/stuff')
-        run('juju consume admin/lma.prometheus-receive-remote-write prometheus')
-        run('juju consume admin/lma.loki-logging loki')
-        run('juju consume admin/lma.grafana-dashboards grafana')
-        run(f'juju deploy grafana-agent-k8s --channel {args.deploy_channel} agent')
-        run('juju relate agent prometheus')
-        run('juju relate agent loki')
-        run('juju relate agent grafana')
-        run(f'juju deploy flog-k8s --channel {args.deploy_channel} flog')
-        run('juju relate flog agent')
-        run(f'juju deploy --channel {args.deploy_channel} zinc-k8s zinc')
-        run('juju relate zinc:grafana-dashboard agent')
-        run('juju relate zinc:metrics-endpoint agent')
-        run('juju relate zinc:log-proxy agent')
-        run('juju switch machine')
-        run('juju add-model machine')
-        run('juju consume k8s:admin/lma.prometheus-receive-remote-write prometheus')
-        run('juju consume k8s:admin/lma.loki-logging loki')
-        run('juju consume k8s:admin/lma.grafana-dashboards grafana')
-        run(f'juju deploy --channel {args.deploy_channel} zookeeper')
-        # kafka currently consumes around 4GiB of memory
-        #run(f'juju deploy --channel {args.deploy_channel} kafka')
-        #run('juju relate zookeeper kafka')
-        run(f'juju deploy --channel {args.deploy_channel} hardware-observer hob')
-        #run('juju relate hob kafka')
-        run('juju relate hob zookeeper')
-        run(f'juju deploy --channel {args.deploy_channel} grafana-agent agent')
-        run('juju relate agent grafana')
-        run('juju relate agent loki')
-        run('juju relate agent prometheus')
-        run('juju relate agent zookeeper')
-        #run('juju relate agent kafka')
-        run('juju relate hob agent')
-        run('juju switch k8s:lma')
 
 
 if __name__ == '__main__':
