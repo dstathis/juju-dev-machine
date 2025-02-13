@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+import json
 import os
 import subprocess
 import sys
@@ -14,10 +15,16 @@ ENDCOLOR = '\033[0m'
 
 def main():
     args = parse_args()
+    if 'remove-istio' in args.targets:
+        remove_istio()
     if 'cos' in args.targets:
         deploy_cos(channel=args.channel)
     if 'istio' in args.targets:
-        deploy_istio()
+        deploy_istio(channel=args.channel)
+
+
+class ModelExistsError(Exception):
+    pass
 
 
 def run(cmd, check=True, shell=False, env=None, **kwargs):
@@ -32,24 +39,56 @@ def run(cmd, check=True, shell=False, env=None, **kwargs):
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('targets', nargs='*', default=['istio'], help='Targets to deploy [istio, cos]')
-    parser.add_argument('--channel', default='stable', help='Channel')
+    parser.add_argument('--channel', default='edge', help='Channel')
     return parser.parse_args()
+
+
+def get_models():
+    models_dict = json.loads(subprocess.run(['juju', 'models', '--format', 'json'], stdout=subprocess.PIPE).stdout)
+    return [model['short-name'] for model in models_dict['models']]
+
+
+def ensure_models(models):
+    """
+    models: {<controller>: [<model>, <model>]}
+    """
+    for controller in models:
+        run(f'juju switch {controller}')
+        existing_models = get_models()
+        for model in models[controller]:
+            if model in existing_models:
+                sys.stderr.write(f'Model {controller}:{model} already exists. Exiting.\n')
+                raise ModelExistsError()
+
+
+def remove_istio():
+    run('juju switch k8s')
+    run('juju destroy-model --destroy-storage --no-prompt istio-test')
+    run('juju destroy-model --destroy-storage --no-prompt istio-system')
+
+
+def deploy_istio(channel):
+    try:
+        ensure_models({'k8s': ['istio-system', 'istio-test']})
+    except ModelExistsError:
+        return
+
+    run('juju switch k8s')
+    run('juju add-model istio-system')
+    run(f'juju deploy istio-k8s istio --channel {channel}')
+
+    run('juju add-model istio-test')
+    run(f'juju deploy istio-beacon-k8s beacon --channel {channel} --config model-on-mesh=true')
+    run(f'juju deploy istio-ingress-k8s ingress --channel {channel}')
 
 
 def deploy_cos(channel):
 
-    # Check if models exist
-    run('juju switch machine')
-    for line in run('juju list-models', capture_output=True, encoding='utf-8').stdout.splitlines():
-        if line.startswith('cos-stuff'):
-            sys.stderr.write('Model already exists. Exiting.\n')
-            return
+    try:
+        ensure_models({'machine': ['cos-stuff'], 'k8s': ['cos', 'cos-stuff']})
+    except ModelExistsError:
+        return
     run('juju switch k8s')
-    for line in run('juju list-models', capture_output=True, encoding='utf-8').stdout.splitlines():
-        if line.startswith('cos') or line.startswith('cos-stuff'):
-            sys.stderr.write('Model already exists. Exiting.\n')
-            return
-
     run('juju add-model cos')
 
     # We can't create the temp dir in /tmp because the juju snap can not access it.
@@ -85,10 +124,6 @@ def deploy_cos(channel):
     run('juju relate agent zookeeper')
     run('juju relate hob agent')
     run('juju switch k8s:cos')
-
-
-def deploy_istio():
-    print(f'\n{RED}ISTIO NOT IMPLEMENTED!{ENDCOLOR}\n')
 
 
 if __name__ == '__main__':
