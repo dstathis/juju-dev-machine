@@ -92,6 +92,9 @@ def main():
     run('sudo snap install yq')
     run(f'sudo snap install juju --channel {args.juju_channel}')
     run('sudo snap install charmcraft --classic')
+    run('sudo snap install sourcecraft --classic --channel beta')
+    run('sudo snap install snapcraft --classic')
+    run('sudo snap install rockcraft --classic')
     pathlib.Path('~/.aliases.d').expanduser().mkdir(exist_ok=True)
     shutil.copy('juju.aliases', pathlib.Path('~/.aliases.d').expanduser())
 
