@@ -71,12 +71,26 @@ def setup_k8s(agent_version):
     run('sudo usermod -a -G microk8s $USER', shell=True)
 
 
+def setup_microceph():
+    run('sudo apt install s3cmd')
+    run(f'cp s3cfg {os.path.expanduser("~/.s3cfg")}')
+    run('sudo snap install microceph --channel squid/edge')
+    run('sudo snap refresh --hold microceph')
+    run('sudo microceph cluster bootstrap')
+    run('sudo microceph disk add loop,4G,3')
+    run('sudo microceph enable rgw --port 8000')
+    run('sudo radosgw-admin user create --uid=user --display-name=user')
+    run('sudo radosgw-admin key create --uid=user --key-type=s3 --access-key=foo --secret-key=bar')
+
+
 def main():
     args = parse_args()
 
     if args.reinstall:
         run('sudo snap remove juju --purge')
         run('sudo snap remove microk8s --purge')
+        run('sudo snap remove microceph --purge')
+        run('sudo apt purge s3cmd')
         jujudir = os.path.expanduser('~/.local/share/juju')
         run(f'rm -rf {jujudir}')
         lxd_instances = run('lxc list --format csv', text=True, stdout=subprocess.PIPE).stdout.strip().splitlines()
