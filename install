@@ -72,7 +72,7 @@ def setup_k8s(agent_version):
 
 
 def setup_microceph():
-    run('sudo apt install s3cmd')
+    run('sudo -E apt-get -o DPkg::Lock::Timeout=60 -yq install s3cmd')
     run(f'cp s3cfg {os.path.expanduser("~/.s3cfg")}')
     run('sudo snap install microceph --channel squid/edge')
     run('sudo snap refresh --hold microceph')
@@ -128,6 +128,7 @@ def main():
 
     setup_lxd(args)
     setup_k8s(args.agent_version)
+    setup_microceph()
 
     curdir = os.getcwd()
     try:
