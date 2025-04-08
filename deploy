@@ -11,6 +11,7 @@ import tempfile
 current_env = os.environ.copy()
 RED = '\033[91m'
 ENDCOLOR = '\033[0m'
+MACHINE_BASE = 'ubuntu@22.04'
 
 
 def main():
@@ -114,10 +115,10 @@ def deploy_cos(channel):
     run('juju consume k8s:admin/cos.prometheus-receive-remote-write prometheus')
     run('juju consume k8s:admin/cos.loki-logging loki')
     run('juju consume k8s:admin/cos.grafana-dashboards grafana')
-    run(f'juju deploy --channel {channel} zookeeper')
-    run(f'juju deploy --channel {channel} hardware-observer hob')
+    run(f'juju deploy --channel {channel} --base {MACHINE_BASE} zookeeper')
+    run(f'juju deploy --channel {channel} --base {MACHINE_BASE} hardware-observer hob')
     run('juju relate hob zookeeper')
-    run(f'juju deploy --channel {channel} grafana-agent agent')
+    run(f'juju deploy --channel {channel} --base {MACHINE_BASE} grafana-agent agent')
     run('juju relate agent grafana')
     run('juju relate agent loki')
     run('juju relate agent prometheus')
