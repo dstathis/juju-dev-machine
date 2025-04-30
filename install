@@ -90,7 +90,7 @@ def main():
         run('sudo snap remove juju --purge')
         run('sudo snap remove microk8s --purge')
         run('sudo snap remove microceph --purge')
-        run('sudo apt purge s3cmd')
+        run('sudo apt purge -y s3cmd')
         jujudir = os.path.expanduser('~/.local/share/juju')
         run(f'rm -rf {jujudir}')
         lxd_instances = run('lxc list --format csv', text=True, stdout=subprocess.PIPE).stdout.strip().splitlines()
