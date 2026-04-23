@@ -18,3 +18,8 @@ jr () {
 alias jrm='juju destroy-model --destroy-storage --no-prompt'
 
 alias nuke='juju destroy-model --destroy-storage --no-wait --force --no-prompt'
+
+function sw {
+  kubectl config set-context --current --namespace ${1}
+  juju switch ${1}
+}
