@@ -40,6 +40,7 @@ def parse_args():
     parser.add_argument('--reinstall', action='store_true', help='Completely uninstall juju and microk8s first')
     parser.add_argument('--juju-channel', action='store', default='3/stable', help='The snap channel to install juju from')
     parser.add_argument('--agent-version', action='store', help='Version of the juju agent to ask for during bootstrap')
+    parser.add_argument('--microk8s-channel', action='store', default='1.36/stable', help='The snap channel to install microk8s from')
     return parser.parse_args()
 
 
@@ -52,14 +53,13 @@ def setup_lxd(args):
     run('sudo usermod -a -G lxd $USER', shell=True)
 
 
-def setup_k8s(agent_version):
-    run('sudo snap install microk8s --classic')
+def setup_k8s(agent_version, microk8s_channel):
+    run(f'sudo snap install microk8s --classic --channel {microk8s_channel}')
     run('sudo snap alias microk8s.kubectl kubectl')
     run('sudo microk8s start')
     run('sudo microk8s status --wait-ready')
     run('sudo microk8s enable hostpath-storage')
     run('sudo microk8s enable dns')
-    run('sudo microk8s enable dashboard')
     run('sudo microk8s enable ingress')
     run('kubectl wait --timeout 30m --for=condition=Ready pods --all --all-namespaces')
     time.sleep(60)
@@ -130,7 +130,7 @@ def main():
     run(f'cp scripts/* {homedir}/bin/', shell=True)
 
     setup_lxd(args)
-    setup_k8s(args.agent_version)
+    setup_k8s(args.agent_version, args.microk8s_channel)
     setup_microceph()
 
     curdir = os.getcwd()
